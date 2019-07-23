@@ -1,0 +1,458 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.1">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2019-07-23T13:35:19+08:00</updated><id>http://localhost:4000/</id><title type="html">Cheney</title><subtitle>分享技术和生活</subtitle><author><name>true</name></author><entry><title type="html">ReactiveCocoa(一)</title><link href="http://localhost:4000/2017/04/18/ReactiveCocoa(%E4%B8%80).html" rel="alternate" type="text/html" title="ReactiveCocoa(一)" /><published>2017-04-18T00:00:00+08:00</published><updated>2017-04-18T00:00:00+08:00</updated><id>http://localhost:4000/2017/04/18/ReactiveCocoa(%E4%B8%80)</id><content type="html" xml:base="http://localhost:4000/2017/04/18/ReactiveCocoa(%E4%B8%80).html">&lt;h1 id=&quot;reactivecocoa一&quot;&gt;ReactiveCocoa(一)&lt;/h1&gt;
+
+&lt;h2 id=&quot;reactivecocoa-简介&quot;&gt;ReactiveCocoa 简介&lt;/h2&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;ReactiveCocoa is inspired by functional reactive programming. Rather than using mutable variables which are replaced and modified in-place, RAC offers “event streams,” represented by the Signal and SignalProducer types, that send values over time.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;ReactiveCocoa 的灵感来自函数式响应式编程(FRP). RAC 并不采用随时可变的变量, 而是用事件流(表现为&lt;code class=&quot;highlighter-rouge&quot;&gt;Signal&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;SignalProducer&lt;/code&gt;)的方式来捕捉值的变化.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Event streams unify all of Cocoa’s common patterns for asynchrony and event handling, including:&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;Delegate methods&lt;/li&gt;
+    &lt;li&gt;Callback blocks&lt;/li&gt;
+    &lt;li&gt;NSNotifications&lt;/li&gt;
+    &lt;li&gt;Control actions and responder chain events&lt;/li&gt;
+    &lt;li&gt;Futures and promises&lt;/li&gt;
+    &lt;li&gt;Key-value observing(KVO)&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;在我们 iOS 开发过程中, 经常会响应某些事件来处理某些业务逻辑, 例如按钮的点击, 上下拉刷新, 网络请求, 属性的变化(通过 KVO)或者用户位置的变化(通过&lt;code class=&quot;highlighter-rouge&quot;&gt;CoreLocation&lt;/code&gt;). 但是这些事件都用不同的方式来处理, 比如 action, delegate, KVO, callback 等.&lt;/p&gt;
+
+&lt;p&gt;其实这些事件, 都可以通过 RAC 处理, ReactiveCocoa 为事件提供了很多处理方法, 而且利用 RAC 处理事件很方便, 可以把要处理的事情, 和监听的事情的代码放在一起, 这样非常方便我们管理, 就不需要跳到对应的方法里, 非常符合我们开发中&lt;strong&gt;高内聚, 低耦合&lt;/strong&gt;的思想.&lt;/p&gt;
+
+&lt;h2 id=&quot;reactivecocoa-常见类&quot;&gt;ReactiveCocoa 常见类&lt;/h2&gt;
+
+&lt;h3 id=&quot;racsignal&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSignal&lt;/code&gt;&lt;/h3&gt;
+
+&lt;p&gt;信号类, 一般表示将来有数据传递, 只要有数据改变, 信号内部接收到数据, 就会马上发出数据. 注意是, 数据发出, 并不是信号类发出.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;信号类(&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSignal&lt;/code&gt;), 只是表示当数据改变时, 信号内部会发出数据, 它本身不具备发送信号的能力, 而是交给内部一个订阅者去发出.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;默认一个信号都是冷信号, 也就是值改变了, 也不会触发, 只有订阅了这个信号, 这个信号才会变为热信号, 值改变了才会触发.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;如何订阅信号: 调用信号&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSignal&lt;/code&gt;的&lt;code class=&quot;highlighter-rouge&quot;&gt;subscribeNext&lt;/code&gt;就能订阅.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSignal&lt;/code&gt;使用步骤&lt;/strong&gt;:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;创建信号&lt;code class=&quot;highlighter-rouge&quot;&gt;+ (RACSignal *)createSignal:(RACDisposable * (^)(id&amp;lt;RACSubscriber&amp;gt; subscriber))didSubscribe&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;发送信号&lt;code class=&quot;highlighter-rouge&quot;&gt;- (void)sendNext:(id)value&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;订阅信号, 才会激活信号&lt;code class=&quot;highlighter-rouge&quot;&gt;- (RACDisposable *)subscribeNext:(void (^)(id x))nextBlock&lt;/code&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;strong&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSignal&lt;/code&gt;底层实现&lt;/strong&gt;：&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;创建子类信号&lt;code class=&quot;highlighter-rouge&quot;&gt;RACDynamicSignal&lt;/code&gt;, 首先把&lt;code class=&quot;highlighter-rouge&quot;&gt;didSubscribe&lt;/code&gt;这个 block 保存到信号&lt;code class=&quot;highlighter-rouge&quot;&gt;RACDynamicSignal&lt;/code&gt;中, 但是还不会触发(冷信号).&lt;/li&gt;
+  &lt;li&gt;当信号被订阅, 也就是调用&lt;code class=&quot;highlighter-rouge&quot;&gt;signal&lt;/code&gt;的&lt;code class=&quot;highlighter-rouge&quot;&gt;subscribeNext:nextBlock&lt;/code&gt;. &lt;code class=&quot;highlighter-rouge&quot;&gt;subscribeNext&lt;/code&gt;内部会创建订阅者&lt;code class=&quot;highlighter-rouge&quot;&gt;subscriber&lt;/code&gt;, 并且把&lt;code class=&quot;highlighter-rouge&quot;&gt;nextBlock&lt;/code&gt;保存到订阅者&lt;code class=&quot;highlighter-rouge&quot;&gt;subscriber&lt;/code&gt;中, 此时为热信号.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;subscribeNext&lt;/code&gt;内部会调用&lt;code class=&quot;highlighter-rouge&quot;&gt;RACDynamicSignal&lt;/code&gt;的&lt;code class=&quot;highlighter-rouge&quot;&gt;didSubscribe&lt;/code&gt;这个block. 通常也就是在&lt;code class=&quot;highlighter-rouge&quot;&gt;RACDynamicSignal&lt;/code&gt;的&lt;code class=&quot;highlighter-rouge&quot;&gt;didSubscribe&lt;/code&gt;中调用&lt;code class=&quot;highlighter-rouge&quot;&gt;[subscriber sendNext:@1]&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;sendNext&lt;/code&gt;底层其实就是执行订阅者&lt;code class=&quot;highlighter-rouge&quot;&gt;subscriber&lt;/code&gt;的&lt;code class=&quot;highlighter-rouge&quot;&gt;nextBlock&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;标记信号发送完成或者取消订阅.&lt;/li&gt;
+  &lt;li&gt;执行&lt;code class=&quot;highlighter-rouge&quot;&gt;RACDisposable&lt;/code&gt;的&lt;code class=&quot;highlighter-rouge&quot;&gt;disposeBlock&lt;/code&gt;中的代码.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;代码:&lt;/p&gt;
+
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// 1. 创建信号 createSignal:didSubscribe(block)&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// RACDisposable: 取消订阅&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// RACSubscriber: 发送数据&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;RACSignal&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;signal&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RACSignal&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;createSignal&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RACDisposable&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_Nullable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RACSubscriber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;_Nonnull&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subscriber&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// block 调用: 每当有订阅者订阅信号, 就会调用 block&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// block 作用: 描述当前信号那些数据需要发送&lt;/span&gt;
+    
+    &lt;span class=&quot;c1&quot;&gt;// 3. 发送信号&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;调用了 didSubscribe&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subscriber&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;sendNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;@1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// 此处调用订阅者的 nextBlock&lt;/span&gt;
+    
+    &lt;span class=&quot;c1&quot;&gt;// 5. 如果不在发送数据, 最好发送信号完成, 内部会自动调用 [RACDisposable disposable] 取消订阅信号. 或者信号想要被取消, 就必须返回一个 RACDisposable. 然后在后面 [disposable dispose]&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subscriber&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;sendCompleted&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RACDisposable&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;disposableWithBlock&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// 6. 信号什么时候被取消: 1. 自动取消, 当一个信号的订阅者被销毁的时候, 就会自动取消订阅. 2. 主动取消&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// block 调用: 一旦一个信号被取消订阅就会调用&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// block 作用: 当信号取消订阅时清空一些资源&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;取消订阅&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;// subscribeNext: 创建订阅者, 然后把 nextBlock 保存到订阅者里面&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 2. 订阅信号: 只要订阅信号, 就会返回一个取消订阅信号的类&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;RACDisposable&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;disposable&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;signal&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;subscribeNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;_Nullable&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 4. block 调用: 每当有信号发出数据, 就会调用 block&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;接受到数据: %@&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 5. 取消订阅&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// [disposable dispose];&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;09&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;50&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;43&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;550264&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;95021&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9298914&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;调用了&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;didSubscribe&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;09&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;50&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;43&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;550461&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;95021&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9298914&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;接受到数据&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;09&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;50&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;43&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;550595&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;95021&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9298914&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;取消订阅&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;racsubscriber&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSubscriber&lt;/code&gt;&lt;/h4&gt;
+
+&lt;p&gt;表示订阅者的意思, 用于发送信号, 这是一个协议, 不是一个类, 只要遵守这个协议, 并且实现方法才能成为订阅者. 通过 create 创建的信号, 都有一个订阅者, 帮助他发送数据.&lt;/p&gt;
+
+&lt;h4 id=&quot;racdisposable&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACDisposable&lt;/code&gt;&lt;/h4&gt;
+
+&lt;p&gt;用于取消订阅或者清理资源, 当信号发送完成或者发送错误的时候, 就会自动触发它.&lt;/p&gt;
+
+&lt;h3 id=&quot;racsubject&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSubject&lt;/code&gt;&lt;/h3&gt;
+
+&lt;p&gt;信号提供者, 自己可以充当信号, 又能发送信号.&lt;/p&gt;
+
+&lt;p&gt;使用场景: 通常用来代替代理, 有了它, 就不必要定义代理了.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSubject&lt;/code&gt;使用步骤&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;创建信号&lt;code class=&quot;highlighter-rouge&quot;&gt;[RACSubject subject]&lt;/code&gt;, 和&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSignal&lt;/code&gt;不一样, 创建信号时没有 block.&lt;/li&gt;
+  &lt;li&gt;订阅信号&lt;code class=&quot;highlighter-rouge&quot;&gt;- (RACDisposable *)subscribeNext:(void (^)(id x))nextBlock&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;发送信号&lt;code class=&quot;highlighter-rouge&quot;&gt;sendNext:(id)value&lt;/code&gt;.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSubject&lt;/code&gt;底层实现和&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSignal&lt;/code&gt;不一样.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;调用&lt;code class=&quot;highlighter-rouge&quot;&gt;subscribeNext&lt;/code&gt;订阅信号, 只是把订阅者保存起来, 并且订阅者的 nextBlock 已经赋值了.&lt;/li&gt;
+  &lt;li&gt;调用&lt;code class=&quot;highlighter-rouge&quot;&gt;sendNext&lt;/code&gt;发送信号, 遍历刚刚保存的所有订阅者, 一个一个调用订阅者的&lt;code class=&quot;highlighter-rouge&quot;&gt;nextBlock&lt;/code&gt;, 所以一定要先订阅才能接受到数据.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;代码:&lt;/p&gt;
+
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// RACSubject: 信号提供者&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 1. 创建信号&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;RACSubject&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subject&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RACSubject&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;subject&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 2. 订阅信号&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subject&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;subscribeNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;_Nullable&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 4. block 调用: 当有数据发出时就会调用&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// block 作用: 处理数据&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;第一个订阅者: %@&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 发送信号&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subject&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;sendNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;@1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;// 2.1 第二次订阅信号&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subject&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;subscribeNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;_Nullable&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;第二个订阅者: %@&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 3. 发送信号&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subject&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;sendNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;@2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subject&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;sendNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;@3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;42&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;191684&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;95217&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9323244&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;第一个订阅者&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;42&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;191868&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;95217&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9323244&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;第一个订阅者&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;42&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;191959&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;95217&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9323244&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;第二个订阅者&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;42&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;192053&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;95217&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9323244&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;第一个订阅者&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;42&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;192149&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;95217&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9323244&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;第二个订阅者&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;racreplaysubject&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACReplaySubject&lt;/code&gt;&lt;/h4&gt;
+
+&lt;p&gt;重复提供信号类, &lt;code class=&quot;highlighter-rouge&quot;&gt;RACSubject&lt;/code&gt;的子类.&lt;/p&gt;
+
+&lt;p&gt;使用场景一: 如果一个信号每被订阅一次, 就需要把之前的值重复发送一遍, 使用重复提供信号类. 
+使用场景二: 可以设置&lt;code class=&quot;highlighter-rouge&quot;&gt;capacity&lt;/code&gt;数量来限制缓存的 value 的数量, 即只缓充最新的几个值.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;创建信号&lt;code class=&quot;highlighter-rouge&quot;&gt;[RACReplaySubject subject]&lt;/code&gt;, 跟&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSignal&lt;/code&gt;不一样, 创建信号时没有 block.&lt;/li&gt;
+  &lt;li&gt;可以先订阅信号, 也可以先发送信号.
+    &lt;ol&gt;
+      &lt;li&gt;订阅信号&lt;code class=&quot;highlighter-rouge&quot;&gt;- (RACDisposable *)subscribeNext:(void (^)(id x))nextBlock&lt;/code&gt;&lt;/li&gt;
+      &lt;li&gt;发送信号&lt;code class=&quot;highlighter-rouge&quot;&gt;sendNext:(id)value&lt;/code&gt;&lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACReplaySubject&lt;/code&gt;底层实现和&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSubject&lt;/code&gt;不一样.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;调用&lt;code class=&quot;highlighter-rouge&quot;&gt;sendNext&lt;/code&gt;发送信号, 把值保存起来, 然后遍历刚刚保存的所有订阅者, 一个一个调用订阅者的nextBlock.&lt;/li&gt;
+  &lt;li&gt;调用&lt;code class=&quot;highlighter-rouge&quot;&gt;subscribeNext&lt;/code&gt;订阅信号, 遍历保存的所有值, 一个一个调用订阅者的&lt;code class=&quot;highlighter-rouge&quot;&gt;nextBlock&lt;/code&gt;.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;如果想当一个信号被订阅, 就重复播放之前所有值, 需要先发送信号, 再订阅信号. &lt;strong&gt;也就是先保存值，再订阅值&lt;/strong&gt;。&lt;/p&gt;
+
+&lt;p&gt;代码:&lt;/p&gt;
+
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// 1. 创建信号&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;RACReplaySubject&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subject&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RACReplaySubject&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;subject&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 2. 订阅信号&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subject&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;subscribeNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;_Nullable&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;第一个订阅者: %@&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 3. 发送信号&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subject&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;sendNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;@1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subject&lt;/span&gt;  &lt;span class=&quot;nf&quot;&gt;sendNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;@2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subject&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;subscribeNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;_Nullable&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;第二个订阅者: %@&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;21&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;01&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;192039&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;95313&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9337583&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;第一个订阅者&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;21&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;01&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;192158&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;95313&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9337583&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;第一个订阅者&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;21&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;01&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;194203&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;95313&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9337583&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;第二个订阅者&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;21&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;01&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;194310&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;95313&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9337583&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;第二个订阅者&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;从输出中看出, 无论&lt;code class=&quot;highlighter-rouge&quot;&gt;sendNext&lt;/code&gt;在订阅之前还是之后, 输出不变. 而&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSubject&lt;/code&gt;同样的代码顺序则会输出:&lt;/p&gt;
+
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;24&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;17&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;340032&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;95350&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9342537&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;第一个订阅者&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;24&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;17&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;340165&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;95350&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9342537&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;第一个订阅者&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;也就是在&lt;code class=&quot;highlighter-rouge&quot;&gt;sendNext&lt;/code&gt;后面订阅的信号已经不管用了.&lt;/p&gt;
+
+&lt;h3 id=&quot;ractuple&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACTuple&lt;/code&gt;&lt;/h3&gt;
+
+&lt;p&gt;元组类, 类似&lt;code class=&quot;highlighter-rouge&quot;&gt;NSArray&lt;/code&gt;, 用来包装值.&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACTupleUnpack&lt;/code&gt;宏: 专门用来解析元组. 等号右边: 需要解析的元组. 宏的参数: 填解析数据的类型. 元组里面有几个值, 宏的参数就必须填几个.&lt;/p&gt;
+
+&lt;p&gt;代码:&lt;/p&gt;
+
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// 遍历字典, 遍历出来的键值对会包装成 RACTuple (元组对象)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;NSDictionary&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dict&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;@{&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;Cheney&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;@&quot;age&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;@18&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dict&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rac_sequence&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;signal&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;subscribeNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;_Nullable&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+   &lt;span class=&quot;c1&quot;&gt;// 解包元组, 会把元组的值按顺序给参数的变量赋值&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;RACTupleUnpack&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;NSString&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NSString&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 相当于以下写法&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// NSString * key = x[0];&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// NSString * value = x[1];&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;%@ %@&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2019-07-22 11:01:19.002974+0800 RACDemo(一)[95601:9382095] name Cheney
+2019-07-22 11:01:19.003585+0800 RACDemo(一)[95601:9382095] age 18
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;racsequence&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSequence&lt;/code&gt;&lt;/h3&gt;
+
+&lt;p&gt;RAC 中的集合类, 用于代替&lt;code class=&quot;highlighter-rouge&quot;&gt;NSArray&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;NSDictionary&lt;/code&gt;, 可以使用它来快速遍历数组和字典. 可以用来字典转模型等. (据说性能很差)&lt;/p&gt;
+
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// 遍历数组&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;NSArray&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;array&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;@[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;@1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;@2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;@3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 把数组转换成集合 RACSequence: aray.rac_sequence&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 把集合转化为信号&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 订阅信号, 会把集合中的所有值遍历出来&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;array&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rac_sequence&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;signal&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;subscribeNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;_Nullable&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;%@&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;11&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;04&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;48&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;837170&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;95656&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9387035&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;11&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;04&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;48&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;837495&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;95656&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9387035&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;11&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;04&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;48&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;837649&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;95656&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9387035&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;字典转模型：&lt;/p&gt;
+
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;NSDictionary&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dict1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;@{&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;Cheney&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;@&quot;age&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;@18&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;NSDictionary&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dict2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;@{&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;bobo&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;@&quot;age&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;@18&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;NSArray&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dictArr&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;@[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dict1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dict2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// map: 映射, 吧原始的 value 值映射成一个新值&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// array: 把集合转换成数组&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 当信号被订阅时, 遍历集合中的原始值, 映射成新值, 保存到新的数组&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;NSArray&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;perArr&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dictArr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rac_sequence&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;map&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_Nullable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;_Nullable&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Person&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;personWithDic&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}]&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;array&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;%@&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;perArr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;raccommand&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACCommand&lt;/code&gt;&lt;/h3&gt;
+
+&lt;p&gt;RAC 中用于处理事件的类, 可以把事件如何处理, 事件中的数据如何传递, 包装到这个类中, 他可以很方便的监控事件的执行过程.&lt;/p&gt;
+
+&lt;p&gt;使用场景: 监听按钮点击, 网络请求.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACCommand&lt;/code&gt;使用步骤:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;创建命令&lt;code class=&quot;highlighter-rouge&quot;&gt;initWithSignalBlock:(RACSignal * (^)(id input))signalBlock&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;在&lt;code class=&quot;highlighter-rouge&quot;&gt;signalBlock&lt;/code&gt;中, 创建&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSignal&lt;/code&gt;, 并且作为&lt;code class=&quot;highlighter-rouge&quot;&gt;signalBlock&lt;/code&gt;的返回值&lt;/li&gt;
+  &lt;li&gt;执行命令&lt;code class=&quot;highlighter-rouge&quot;&gt;- (RACSignal *)execute:(id)input&lt;/code&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACCommand&lt;/code&gt;使用注意:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;signalBlock&lt;/code&gt;必须要返回一个信号, 不能传 nil.&lt;/li&gt;
+  &lt;li&gt;如果不想要传递信号, 直接创建空的信号&lt;code class=&quot;highlighter-rouge&quot;&gt;[RACSignal empty]&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACCommand&lt;/code&gt;中信号如果数据传递完, 必须调用&lt;code class=&quot;highlighter-rouge&quot;&gt;[subscriber sendCompleted]&lt;/code&gt;, 这时命令才会执行完毕, 否则永远处于执行中.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACCommand&lt;/code&gt;需要被强引用, 否则接收不到&lt;code class=&quot;highlighter-rouge&quot;&gt;RACCommand&lt;/code&gt;中的信号, 因此&lt;code class=&quot;highlighter-rouge&quot;&gt;RACCommand&lt;/code&gt;中的信号是延迟发送的.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACCommand&lt;/code&gt;设计思想: 内部&lt;code class=&quot;highlighter-rouge&quot;&gt;signalBlock&lt;/code&gt;为什么要返回一个信号, 这个信号有什么用.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;在RAC开发中, 通常会把网络请求封装到&lt;code class=&quot;highlighter-rouge&quot;&gt;RACCommand&lt;/code&gt;, 直接执行某个&lt;code class=&quot;highlighter-rouge&quot;&gt;RACCommand&lt;/code&gt;就能发送请求.&lt;/li&gt;
+  &lt;li&gt;当&lt;code class=&quot;highlighter-rouge&quot;&gt;RACCommand&lt;/code&gt;内部请求到数据的时候, 需要把请求的数据传递给外界, 这时候就需要通过&lt;code class=&quot;highlighter-rouge&quot;&gt;signalBlock&lt;/code&gt;返回的信号传递了.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;如何拿到&lt;code class=&quot;highlighter-rouge&quot;&gt;RACCommand&lt;/code&gt;中返回信号发出的数据.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACCommand&lt;/code&gt;有个执行信号源&lt;code class=&quot;highlighter-rouge&quot;&gt;executionSignals&lt;/code&gt;, 这个是&lt;code class=&quot;highlighter-rouge&quot;&gt;signal of signals&lt;/code&gt;(信号的信号), 意思是信号发出的数据是信号, 不是普通的类型.&lt;/li&gt;
+  &lt;li&gt;订阅&lt;code class=&quot;highlighter-rouge&quot;&gt;executionSignals&lt;/code&gt;就能拿到&lt;code class=&quot;highlighter-rouge&quot;&gt;RACCommand&lt;/code&gt;中返回的信号, 然后订阅&lt;code class=&quot;highlighter-rouge&quot;&gt;signalBlock&lt;/code&gt;返回的信号, 就能获取发出的值.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;监听当前命令是否正在执行executing.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;代码:&lt;/p&gt;
+
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// 1. 创建命令&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;RACCommand&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;command&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RACCommand&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;alloc&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;initWithSignalBlock&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RACSignal&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_Nonnull&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;_Nullable&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;input&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// block 调用: 当执行这个命令类的时候就会调用&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// block 作用: 描述如何处理事件, 网络请求&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;执行命令: %@&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;input&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 创建空信号, 必须返回信号&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// return RACSignal.empty;&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 2. RACCommand 必须返回信号, 处理事件产生的数据就通过返回的信号发出. 注意: 数据传递完, 最好调用 sendCompleted, 这时命令才执行完毕.&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RACSignal&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;createSignal&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RACDisposable&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_Nullable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RACSubscriber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;_Nonnull&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subscriber&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// block 调用: 当信号被订阅时被调用&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// block 作用: 发送处理事件的信号&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subscriber&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;sendNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;信号发出的内容&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subscriber&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;sendCompleted&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;nil&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// executionSignals: 信号源, 包含事件处理的所有信号.&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// executionSignals: signalOfSignals, 信号中信号, 就是信号发出的数据也是信号&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// switchToLatest: 用于 signalOfSignals, 获取 signalOfSignals 发出的最新信号, 也就是直接拿到 RACCommand 的信号&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 3. 如果想要h订阅接受信号源的信号内容, 必须保证命令不被销毁&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;command&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executionSignals&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;switchToLatest&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;subscribeNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;_Nullable&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;%@&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 4. 执行命令, 调用 signalBlock&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;command&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;execute&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;@1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 5. 监听命令是否执行完毕, 默认会来一次, 可以直接跳过, skip 表示跳过第一次信号&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;command&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executing&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;skip&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;subscribeNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;NSNumber&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_Nullable&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;boolValue&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;YES&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;正在执行&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;执行完成&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;racmulticastconnection&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACMulticastConnection&lt;/code&gt;&lt;/h3&gt;
+&lt;p&gt;用于当一个信号被多次订阅时, 为了保证创建信号时&lt;strong&gt;避免多次调用创建信号中的 block&lt;/strong&gt;, 造成副作用, 可以使用这个类处理.&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACMulticastConnection&lt;/code&gt;使用步骤:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;创建信号&lt;code class=&quot;highlighter-rouge&quot;&gt;+ (RACSignal *)createSignal:(RACDisposable * (^)(id&amp;lt;RACSubscriber&amp;gt; subscriber))didSubscribe&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;创建连接&lt;code class=&quot;highlighter-rouge&quot;&gt;RACMulticastConnection * connect = [signal publish];&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;订阅信号. 注意: 订阅的不在是之前的信号, 而是连接的信号. &lt;code class=&quot;highlighter-rouge&quot;&gt;[connect.signal subscribeNext:nextBlock]&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;连接&lt;code class=&quot;highlighter-rouge&quot;&gt;[connect connect]&lt;/code&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACMulticastConnection&lt;/code&gt;底层原理:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;创建&lt;code class=&quot;highlighter-rouge&quot;&gt;connect&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;connect.sourceSignal&lt;/code&gt; -&amp;gt; &lt;code class=&quot;highlighter-rouge&quot;&gt;RACSignal&lt;/code&gt;(原始信号) &lt;code class=&quot;highlighter-rouge&quot;&gt;connect.signal&lt;/code&gt; -&amp;gt; &lt;code class=&quot;highlighter-rouge&quot;&gt;RACSubject&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;订阅&lt;code class=&quot;highlighter-rouge&quot;&gt;connect.signal&lt;/code&gt;, 会调用&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSubject&lt;/code&gt;的&lt;code class=&quot;highlighter-rouge&quot;&gt;subscribeNext&lt;/code&gt;, 创建订阅者, 而且把订阅者保存起来, 不会执行 block.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;[connect connect]&lt;/code&gt;内部会订阅&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSignal&lt;/code&gt;(原始信号), 并且订阅者是&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSubject&lt;/code&gt;.
+    &lt;ol&gt;
+      &lt;li&gt;订阅原始信号, 就会调用原始信号中的&lt;code class=&quot;highlighter-rouge&quot;&gt;didSubscribe&lt;/code&gt;.&lt;/li&gt;
+      &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;didSubscribe&lt;/code&gt;, 拿到订阅者调用&lt;code class=&quot;highlighter-rouge&quot;&gt;sendNext&lt;/code&gt;, 其实是调用&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSubject&lt;/code&gt;的&lt;code class=&quot;highlighter-rouge&quot;&gt;sendNext&lt;/code&gt;.&lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSubject&lt;/code&gt;的&lt;code class=&quot;highlighter-rouge&quot;&gt;sendNext&lt;/code&gt;, 会遍历&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSubject&lt;/code&gt;所有订阅者发送信号.
+    &lt;ol&gt;
+      &lt;li&gt;因为刚刚第二步, 都是在订阅&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSubject&lt;/code&gt;, 因此会拿到第二步所有的订阅者, 调用他们的&lt;code class=&quot;highlighter-rouge&quot;&gt;nextBlock&lt;/code&gt;.&lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;需求: 假设在一个信号中发送请求, 每次订阅一次都会发送请求, 这样就会导致多次请求. 
+解决: 使用 RACMulticastConnection 就能解决.&lt;/p&gt;
+
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// 发送请求, 用一个信号内包装, 不管有多少个订阅者, 只想要发送一次请求&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;RACSignal&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;signal&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RACSignal&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;createSignal&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RACDisposable&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RACSubscriber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subscriber&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// didSubscribe(block)中的代码都统称为副作用 (Side Effects).&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 发送请求&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;发送请求&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subscriber&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;sendNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;@1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;nil&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 订阅信号&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;signal&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;subscribeNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;接收数据: %@&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;signal&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;subscribeNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;接收数据: %@&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;11&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;45&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;916622&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;96081&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9442511&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;发送请求&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;11&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;45&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;916781&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;96081&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9442511&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;接收数据&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;11&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;45&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;916923&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;96081&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9442511&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;发送请求&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;11&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;45&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;917039&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;96081&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9442511&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;接收数据&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;运行结果会执行两遍发送请求, 也就是每次订阅都会发送一次请求.&lt;/p&gt;
+
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// RACMulticastConnection: 解决重复请求问题&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 1. 创建信号&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;RACSignal&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;signal&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RACSignal&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;createSignal&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RACDisposable&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RACSubscriber&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subscriber&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;发送请求&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;subscriber&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;sendNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;@1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;nil&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 2. 创建连接&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;RACMulticastConnection&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;connect&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;signal&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;publish&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 3. 订阅信号&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 注意: 订阅信号也不能激活信号, 只是保存订阅者到数组, 必须通过连接, 当调用连接就会一次性调用所有订阅者的 sendNext:&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;connect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;signal&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;subscribeNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;订阅者一信号&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;connect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;signal&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;subscribeNext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;订阅者二信号&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}];&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 4. 连接, 激活信号&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;connect&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;connect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;11&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;46&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;55&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;626196&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;96118&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9445261&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;发送请求&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;11&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;46&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;55&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;626338&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;96118&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9445261&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;订阅者一信号&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;2019&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;07&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;11&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;46&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;55&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;626440&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0800&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RACDemo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;一&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;96118&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9445261&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;订阅者二信号&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;h3 id=&quot;racschedule&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSchedule&lt;/code&gt;&lt;/h3&gt;
+
+&lt;p&gt;RAC 中的队列, 用 GCD 封装的.&lt;/p&gt;
+
+&lt;h3 id=&quot;racunit&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACUnit&lt;/code&gt;&lt;/h3&gt;
+
+&lt;p&gt;表⽰ stream 不包含有意义的值, 也就是看到这个, 可以直接理解为 nil.&lt;/p&gt;
+
+&lt;h3 id=&quot;racevent&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;RACEvent&lt;/code&gt;&lt;/h3&gt;
+
+&lt;p&gt;把数据包装成信号事件(&lt;code class=&quot;highlighter-rouge&quot;&gt;signal event&lt;/code&gt;). 它主要通过&lt;code class=&quot;highlighter-rouge&quot;&gt;RACSignal&lt;/code&gt;的&lt;code class=&quot;highlighter-rouge&quot;&gt;-materialize&lt;/code&gt;来使用.&lt;/p&gt;</content><author><name>Cheney</name></author><category term="ReactiveCocoa" /><summary type="html">ReactiveCocoa(一)</summary></entry></feed>
