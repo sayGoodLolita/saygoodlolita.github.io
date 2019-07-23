@@ -1,14 +1,15 @@
 ---
 layout: post
-title: 'ReactiveCocoa(二)' 
+title: 'ReactiveCocoa(二)'
 date: 2017-04-30
 author: Cheney
 color: rgb(255,210,32)
-cover: '../assets/test.png
+cover: '../assets/test.png'
 tags: ReactiveCocoa
 ---
 
 # ReactiveCocoa(二)
+
 ## 常见用法
 
 之前提到了 RAC 可以代替代理, KVO 等. 现在来看看具体用法. 
