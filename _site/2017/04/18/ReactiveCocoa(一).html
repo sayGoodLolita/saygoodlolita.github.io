@@ -108,8 +108,8 @@ var _hmt = _hmt || [];
   <!-- 页面宽度大于800px -->
   <div class="left-area">
     
-      <a href="javascript:;" class="btn bounceInLeft animated" onmouseover="showLeft();this.style.color='rgb(255,210,32)';" onmouseout="goneLeft();this.style.color='rgba(0,0,0,.2)';"><</a>
-      <div id="left-tab" style="display:none;"><span class="left-san"></span><span class="left-main" style="color:rgb(255,210,32);"><sapn class="main">没有上一页咯</sapn></span></div>
+      <a href="/2017/04/30/ReactiveCocoa(%E4%BA%8C).html" class="btn bounceInLeft animated" onmouseover="showLeft();this.style.color='rgb(255,210,32)';" onmouseout="goneLeft();this.style.color='rgba(0,0,0,.2)';"><</a>
+      <div id="left-tab" style="display:none;"><span class="left-san"></span><span class="left-main" style="color:rgb(255,210,32);"><sapn class="main">ReactiveCocoa(二)</sapn></span></div>
     
   </div>
   <div class="post-titlearea">
@@ -128,7 +128,7 @@ var _hmt = _hmt || [];
   <!-- 页面宽度小于800px -->
   <div class="post-changearea">
     
-      <a href="javascript:;" class="leftchange" style="border-right: 1px solid rgb(255,210,32);border-bottom: 2px solid rgb(255,210,32);"><span><br>没有上一篇咯</span></a>
+      <a href="/2017/04/30/ReactiveCocoa(%E4%BA%8C).html" class="leftchange" style="border-right: 1px solid rgb(255,210,32);border-bottom: 2px solid rgb(255,210,32);"><span>上一篇<br><br>ReactiveCocoa(二)</span></a>
     
     
       <a href="javascript:;" class="rightchange" style="border-left: 1px solid rgb(255,210,32);border-bottom: 2px solid rgb(255,210,32);"><span><br>没有下一篇咯</span></a>
@@ -241,9 +241,9 @@ var _hmt = _hmt || [];
 <span class="c1">// [disposable dispose];</span>
 </code></pre></div></div>
 
-<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">09</span><span class="o">:</span><span class="mi">50</span><span class="o">:</span><span class="mi">43</span><span class="p">.</span><span class="mi">550264</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">95021</span><span class="o">:</span><span class="mi">9298914</span><span class="p">]</span> <span class="err">调用了</span> <span class="n">didSubscribe</span>
-<span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">09</span><span class="o">:</span><span class="mi">50</span><span class="o">:</span><span class="mi">43</span><span class="p">.</span><span class="mi">550461</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">95021</span><span class="o">:</span><span class="mi">9298914</span><span class="p">]</span> <span class="err">接受到数据</span><span class="o">:</span> <span class="mi">1</span>
-<span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">09</span><span class="o">:</span><span class="mi">50</span><span class="o">:</span><span class="mi">43</span><span class="p">.</span><span class="mi">550595</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">95021</span><span class="o">:</span><span class="mi">9298914</span><span class="p">]</span> <span class="err">取消订阅</span>
+<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">调用了</span> <span class="n">didSubscribe</span>
+<span class="err">接受到数据</span><span class="o">:</span> <span class="mi">1</span>
+<span class="err">取消订阅</span>
 </code></pre></div></div>
 
 <h4 id="racsubscriber"><code class="highlighter-rouge">RACSubscriber</code></h4>
@@ -298,11 +298,11 @@ var _hmt = _hmt || [];
 <span class="p">[</span><span class="n">subject</span> <span class="nf">sendNext</span><span class="p">:</span><span class="mi">@3</span><span class="p">];</span>
 </code></pre></div></div>
 
-<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">10</span><span class="o">:</span><span class="mi">10</span><span class="o">:</span><span class="mi">42</span><span class="p">.</span><span class="mi">191684</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">95217</span><span class="o">:</span><span class="mi">9323244</span><span class="p">]</span> <span class="err">第一个订阅者</span><span class="o">:</span> <span class="mi">1</span>
-<span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">10</span><span class="o">:</span><span class="mi">10</span><span class="o">:</span><span class="mi">42</span><span class="p">.</span><span class="mi">191868</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">95217</span><span class="o">:</span><span class="mi">9323244</span><span class="p">]</span> <span class="err">第一个订阅者</span><span class="o">:</span> <span class="mi">2</span>
-<span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">10</span><span class="o">:</span><span class="mi">10</span><span class="o">:</span><span class="mi">42</span><span class="p">.</span><span class="mi">191959</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">95217</span><span class="o">:</span><span class="mi">9323244</span><span class="p">]</span> <span class="err">第二个订阅者</span><span class="o">:</span> <span class="mi">2</span>
-<span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">10</span><span class="o">:</span><span class="mi">10</span><span class="o">:</span><span class="mi">42</span><span class="p">.</span><span class="mi">192053</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">95217</span><span class="o">:</span><span class="mi">9323244</span><span class="p">]</span> <span class="err">第一个订阅者</span><span class="o">:</span> <span class="mi">3</span>
-<span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">10</span><span class="o">:</span><span class="mi">10</span><span class="o">:</span><span class="mi">42</span><span class="p">.</span><span class="mi">192149</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">95217</span><span class="o">:</span><span class="mi">9323244</span><span class="p">]</span> <span class="err">第二个订阅者</span><span class="o">:</span> <span class="mi">3</span>
+<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">第一个订阅者</span><span class="o">:</span> <span class="mi">1</span>
+<span class="err">第一个订阅者</span><span class="o">:</span> <span class="mi">2</span>
+<span class="err">第二个订阅者</span><span class="o">:</span> <span class="mi">2</span>
+<span class="err">第一个订阅者</span><span class="o">:</span> <span class="mi">3</span>
+<span class="err">第二个订阅者</span><span class="o">:</span> <span class="mi">3</span>
 </code></pre></div></div>
 
 <h4 id="racreplaysubject"><code class="highlighter-rouge">RACReplaySubject</code></h4>
@@ -347,16 +347,16 @@ var _hmt = _hmt || [];
 <span class="p">}];</span>
 </code></pre></div></div>
 
-<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">10</span><span class="o">:</span><span class="mi">21</span><span class="o">:</span><span class="mo">01</span><span class="p">.</span><span class="mi">192039</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">95313</span><span class="o">:</span><span class="mi">9337583</span><span class="p">]</span> <span class="err">第一个订阅者</span><span class="o">:</span> <span class="mi">1</span>
-<span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">10</span><span class="o">:</span><span class="mi">21</span><span class="o">:</span><span class="mo">01</span><span class="p">.</span><span class="mi">192158</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">95313</span><span class="o">:</span><span class="mi">9337583</span><span class="p">]</span> <span class="err">第一个订阅者</span><span class="o">:</span> <span class="mi">2</span>
-<span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">10</span><span class="o">:</span><span class="mi">21</span><span class="o">:</span><span class="mo">01</span><span class="p">.</span><span class="mi">194203</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">95313</span><span class="o">:</span><span class="mi">9337583</span><span class="p">]</span> <span class="err">第二个订阅者</span><span class="o">:</span> <span class="mi">1</span>
-<span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">10</span><span class="o">:</span><span class="mi">21</span><span class="o">:</span><span class="mo">01</span><span class="p">.</span><span class="mi">194310</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">95313</span><span class="o">:</span><span class="mi">9337583</span><span class="p">]</span> <span class="err">第二个订阅者</span><span class="o">:</span> <span class="mi">2</span>
+<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">第一个订阅者</span><span class="o">:</span> <span class="mi">1</span>
+<span class="err">第一个订阅者</span><span class="o">:</span> <span class="mi">2</span>
+<span class="err">第二个订阅者</span><span class="o">:</span> <span class="mi">1</span>
+<span class="err">第二个订阅者</span><span class="o">:</span> <span class="mi">2</span>
 </code></pre></div></div>
 
 <p>从输出中看出, 无论<code class="highlighter-rouge">sendNext</code>在订阅之前还是之后, 输出不变. 而<code class="highlighter-rouge">RACSubject</code>同样的代码顺序则会输出:</p>
 
-<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">10</span><span class="o">:</span><span class="mi">24</span><span class="o">:</span><span class="mi">17</span><span class="p">.</span><span class="mi">340032</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">95350</span><span class="o">:</span><span class="mi">9342537</span><span class="p">]</span> <span class="err">第一个订阅者</span><span class="o">:</span> <span class="mi">1</span>
-<span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">10</span><span class="o">:</span><span class="mi">24</span><span class="o">:</span><span class="mi">17</span><span class="p">.</span><span class="mi">340165</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">95350</span><span class="o">:</span><span class="mi">9342537</span><span class="p">]</span> <span class="err">第一个订阅者</span><span class="o">:</span> <span class="mi">2</span>
+<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">第一个订阅者</span><span class="o">:</span> <span class="mi">1</span>
+<span class="err">第一个订阅者</span><span class="o">:</span> <span class="mi">2</span>
 </code></pre></div></div>
 
 <p>也就是在<code class="highlighter-rouge">sendNext</code>后面订阅的信号已经不管用了.</p>
@@ -381,8 +381,8 @@ var _hmt = _hmt || [];
 <span class="p">}];</span>
 </code></pre></div></div>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2019-07-22 11:01:19.002974+0800 RACDemo(一)[95601:9382095] name Cheney
-2019-07-22 11:01:19.003585+0800 RACDemo(一)[95601:9382095] age 18
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>name Cheney
+age 18
 </code></pre></div></div>
 
 <h3 id="racsequence"><code class="highlighter-rouge">RACSequence</code></h3>
@@ -399,9 +399,9 @@ var _hmt = _hmt || [];
 <span class="p">}];</span>
 </code></pre></div></div>
 
-<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">11</span><span class="o">:</span><span class="mo">04</span><span class="o">:</span><span class="mi">48</span><span class="p">.</span><span class="mi">837170</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">95656</span><span class="o">:</span><span class="mi">9387035</span><span class="p">]</span> <span class="mi">1</span>
-<span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">11</span><span class="o">:</span><span class="mo">04</span><span class="o">:</span><span class="mi">48</span><span class="p">.</span><span class="mi">837495</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">95656</span><span class="o">:</span><span class="mi">9387035</span><span class="p">]</span> <span class="mi">2</span>
-<span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">11</span><span class="o">:</span><span class="mo">04</span><span class="o">:</span><span class="mi">48</span><span class="p">.</span><span class="mi">837649</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">95656</span><span class="o">:</span><span class="mi">9387035</span><span class="p">]</span> <span class="mi">3</span>
+<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="mi">1</span>
+<span class="mi">2</span>
+<span class="mi">3</span>
 </code></pre></div></div>
 
 <p>字典转模型：</p>
@@ -557,10 +557,10 @@ var _hmt = _hmt || [];
 <span class="p">}];</span>
 </code></pre></div></div>
 
-<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">11</span><span class="o">:</span><span class="mi">45</span><span class="o">:</span><span class="mo">00</span><span class="p">.</span><span class="mi">916622</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">96081</span><span class="o">:</span><span class="mi">9442511</span><span class="p">]</span> <span class="err">发送请求</span>
-<span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">11</span><span class="o">:</span><span class="mi">45</span><span class="o">:</span><span class="mo">00</span><span class="p">.</span><span class="mi">916781</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">96081</span><span class="o">:</span><span class="mi">9442511</span><span class="p">]</span> <span class="err">接收数据</span><span class="o">:</span> <span class="mi">1</span>
-<span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">11</span><span class="o">:</span><span class="mi">45</span><span class="o">:</span><span class="mo">00</span><span class="p">.</span><span class="mi">916923</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">96081</span><span class="o">:</span><span class="mi">9442511</span><span class="p">]</span> <span class="err">发送请求</span>
-<span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">11</span><span class="o">:</span><span class="mi">45</span><span class="o">:</span><span class="mo">00</span><span class="p">.</span><span class="mi">917039</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">96081</span><span class="o">:</span><span class="mi">9442511</span><span class="p">]</span> <span class="err">接收数据</span><span class="o">:</span> <span class="mi">1</span>
+<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">发送请求</span>
+<span class="err">接收数据</span><span class="o">:</span> <span class="mi">1</span>
+<span class="err">发送请求</span>
+<span class="err">接收数据</span><span class="o">:</span> <span class="mi">1</span>
 </code></pre></div></div>
 <p>运行结果会执行两遍发送请求, 也就是每次订阅都会发送一次请求.</p>
 
@@ -585,9 +585,9 @@ var _hmt = _hmt || [];
 <span class="p">[</span><span class="n">connect</span> <span class="nf">connect</span><span class="p">];</span>
 </code></pre></div></div>
 
-<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">11</span><span class="o">:</span><span class="mi">46</span><span class="o">:</span><span class="mi">55</span><span class="p">.</span><span class="mi">626196</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">96118</span><span class="o">:</span><span class="mi">9445261</span><span class="p">]</span> <span class="err">发送请求</span>
-<span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">11</span><span class="o">:</span><span class="mi">46</span><span class="o">:</span><span class="mi">55</span><span class="p">.</span><span class="mi">626338</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">96118</span><span class="o">:</span><span class="mi">9445261</span><span class="p">]</span> <span class="err">订阅者一信号</span>
-<span class="mi">2019</span><span class="o">-</span><span class="mo">07</span><span class="o">-</span><span class="mi">22</span> <span class="mi">11</span><span class="o">:</span><span class="mi">46</span><span class="o">:</span><span class="mi">55</span><span class="p">.</span><span class="mi">626440</span><span class="o">+</span><span class="mi">0800</span> <span class="n">RACDemo</span><span class="p">(</span><span class="err">一</span><span class="p">)[</span><span class="mi">96118</span><span class="o">:</span><span class="mi">9445261</span><span class="p">]</span> <span class="err">订阅者二信号</span>
+<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">发送请求</span>
+<span class="err">订阅者一信号</span>
+<span class="err">订阅者二信号</span>
 </code></pre></div></div>
 <h3 id="racschedule"><code class="highlighter-rouge">RACSchedule</code></h3>
 
