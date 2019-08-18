@@ -1,4 +1,520 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.1">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2019-08-05T20:15:58+08:00</updated><id>http://localhost:4000/</id><title type="html">Cheney</title><subtitle>分享技术和生活</subtitle><author><name>true</name></author><entry><title type="html">ReactiveCocoa(二)</title><link href="http://localhost:4000/2017/04/30/ReactiveCocoa(%E4%BA%8C).html" rel="alternate" type="text/html" title="ReactiveCocoa(二)" /><published>2017-04-30T00:00:00+08:00</published><updated>2017-04-30T00:00:00+08:00</updated><id>http://localhost:4000/2017/04/30/ReactiveCocoa(%E4%BA%8C)</id><content type="html" xml:base="http://localhost:4000/2017/04/30/ReactiveCocoa(%E4%BA%8C).html">&lt;h1 id=&quot;reactivecocoa二&quot;&gt;ReactiveCocoa(二)&lt;/h1&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.1">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2019-08-18T20:21:04+08:00</updated><id>http://localhost:4000/</id><title type="html">Cheney</title><subtitle>分享技术和生活</subtitle><author><name>true</name></author><entry><title type="html">iOS Block 的原理(四)</title><link href="http://localhost:4000/2018/08/23/iOS-Block-%E7%9A%84%E5%8E%9F%E7%90%86(%E5%9B%9B).html" rel="alternate" type="text/html" title="iOS Block 的原理(四)" /><published>2018-08-23T00:00:00+08:00</published><updated>2018-08-23T00:00:00+08:00</updated><id>http://localhost:4000/2018/08/23/iOS%20Block%20%E7%9A%84%E5%8E%9F%E7%90%86(%E5%9B%9B)</id><content type="html" xml:base="http://localhost:4000/2018/08/23/iOS-Block-%E7%9A%84%E5%8E%9F%E7%90%86(%E5%9B%9B).html">&lt;h1 id=&quot;ios-block-的原理四&quot;&gt;iOS Block 的原理(四)&lt;/h1&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;本质上也是一个结构体, 内部也拥有&lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;指针, 可以看做是一个 OC 对象, 结构如下&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;struct __main_block_impl_0 {
+  struct __block_impl impl;
+  struct __main_block_desc_0* Desc;
+  // 如果 block 捕获了局部变量, 则会在这里增加成员变量并在以下构造函数赋值
+  __main_block_impl_0(void *fp, struct __main_block_desc_0 *desc, int flags=0) {
+    impl.isa = &amp;amp;_NSConcreteStackBlock;
+    impl.Flags = flags;
+    impl.FuncPtr = fp;
+    Desc = desc;
+  }
+};
+
+struct __block_impl {
+  void *isa;
+  int Flags;
+  int Reserved;
+  void *FuncPtr;			// block 代码块的地址
+};
+
+static struct __main_block_desc_0 {
+  size_t reserved;			// 0
+  size_t Block_size;		// block 占用内存的大小
+} __main_block_desc_0_DATA = { 0, sizeof(struct __main_block_impl_0)};
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;内部封装了函数调用以及函数调用环境&lt;/p&gt;
+
+&lt;h3 id=&quot;block-的变量捕获capture&quot;&gt;Block 的变量捕获(capture)&lt;/h3&gt;
+
+&lt;p&gt;对于&lt;code class=&quot;highlighter-rouge&quot;&gt;auto&lt;/code&gt;局部变量, 也就是离开作用域自动销毁的局部变量, 会被&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;捕获到内部, 访问的方式为值传递, 所以在外部修改局部变量的值不会影响到&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;捕获的值
+对于&lt;code class=&quot;highlighter-rouge&quot;&gt;static&lt;/code&gt;局部变量, 也就是静态局部变量, 也会被&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;捕获到内部, 访问的方式为指针传递, 所以外部修改局部变量的值会影响到&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;捕获的值
+对于全部变量, 不需要被&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;捕获, 可以直接访问&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;self&lt;/code&gt;因为是函数的默认参数, 属于局部变量, 也会被&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;捕获, 如果直接使用的是实例变量, 本质上也是从&lt;code class=&quot;highlighter-rouge&quot;&gt;self&lt;/code&gt;中去访问, &lt;code class=&quot;highlighter-rouge&quot;&gt;self&lt;/code&gt;也会被捕获&lt;/p&gt;
+
+&lt;h3 id=&quot;block-存放的内存区域&quot;&gt;Block 存放的内存区域&lt;/h3&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;有三种类型, 分别存储的内存区域不同&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;__NSGlobalBlock__&lt;/code&gt;类型存放在全局区&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;__NSMallocBlock__&lt;/code&gt;类型存放在堆区&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;__NSStackBlock__&lt;/code&gt;类型存放在栈区&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;如果&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;内部没有访问&lt;code class=&quot;highlighter-rouge&quot;&gt;auto&lt;/code&gt;变量则会是&lt;code class=&quot;highlighter-rouge&quot;&gt;__NSGlobalBlock__&lt;/code&gt;类型
+如果&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;内部访问了&lt;code class=&quot;highlighter-rouge&quot;&gt;auto&lt;/code&gt;变量则会是&lt;code class=&quot;highlighter-rouge&quot;&gt;__NSStackBlock__&lt;/code&gt;类型
+对&lt;code class=&quot;highlighter-rouge&quot;&gt;__NSStackBlock__&lt;/code&gt;对象调用&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;则会从栈区复制到堆区并会返回&lt;code class=&quot;highlighter-rouge&quot;&gt;__NSMallocBlock__&lt;/code&gt;类型&lt;/p&gt;
+
+&lt;p&gt;如果使用&lt;code class=&quot;highlighter-rouge&quot;&gt;__NSGlobalBlock__&lt;/code&gt;调用&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;则无效, 而&lt;code class=&quot;highlighter-rouge&quot;&gt;__NSMallocBlock__&lt;/code&gt;调用&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;则会引用计数+1&lt;/p&gt;
+
+&lt;p&gt;但是在&lt;code class=&quot;highlighter-rouge&quot;&gt;ARC&lt;/code&gt;环境下, 编译器会在以下情况下自动&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;当&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;作为函数返回值时&lt;/li&gt;
+  &lt;li&gt;当&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;赋值给&lt;code class=&quot;highlighter-rouge&quot;&gt;__strong&lt;/code&gt;指针时&lt;/li&gt;
+  &lt;li&gt;当&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;作为&lt;code class=&quot;highlighter-rouge&quot;&gt;Cocoa API&lt;/code&gt;中方法名含有&lt;code class=&quot;highlighter-rouge&quot;&gt;usingBlock&lt;/code&gt;的方法参数时&lt;/li&gt;
+  &lt;li&gt;当&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;作为&lt;code class=&quot;highlighter-rouge&quot;&gt;GCD API&lt;/code&gt;中的方法参数时&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;block对于对象的变量捕获&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;对于对象的变量捕获&lt;/h4&gt;
+&lt;p&gt;在栈区的&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;, 都&lt;code class=&quot;highlighter-rouge&quot;&gt;auto&lt;/code&gt;的变量都不会产生强引用&lt;/p&gt;
+
+&lt;p&gt;如果&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;访问的是一个对象类型, &lt;code class=&quot;highlighter-rouge&quot;&gt;__main_block_desc_0&lt;/code&gt;结构体会增加&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;dispose&lt;/code&gt;函数来对对象做内存管理操作&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__main_block_desc_0&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kt&quot;&gt;size_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;reserved&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kt&quot;&gt;size_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Block_size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;copy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__main_block_impl_0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__main_block_impl_0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dispose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__main_block_impl_0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__main_block_desc_0_DATA&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;sizeof&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__main_block_impl_0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__main_block_copy_0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__main_block_dispose_0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;如果&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;被&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;到堆区&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;调用&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;内部的&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;函数&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;内部会调用&lt;code class=&quot;highlighter-rouge&quot;&gt;_Block_object_assign&lt;/code&gt;函数&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;_Block_object_assign&lt;/code&gt;函数会根据&lt;code class=&quot;highlighter-rouge&quot;&gt;auto&lt;/code&gt;变量的修饰符(&lt;code class=&quot;highlighter-rouge&quot;&gt;__stong&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;__weak&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;__unsafe_unretained&lt;/code&gt;)做出相应的引用操作&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;如果&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;从堆区移除&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;调用&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;内部的&lt;code class=&quot;highlighter-rouge&quot;&gt;dispose&lt;/code&gt;函数&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;dispose&lt;/code&gt;内部会调用&lt;code class=&quot;highlighter-rouge&quot;&gt;_Block_object_dispose&lt;/code&gt;函数&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;_Block_object_dispose&lt;/code&gt;会自动释放引用的&lt;code class=&quot;highlighter-rouge&quot;&gt;auto&lt;/code&gt;变量&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&quot;__block&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;__block&lt;/code&gt;&lt;/h3&gt;
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;内部不能直接修改&lt;code class=&quot;highlighter-rouge&quot;&gt;auto&lt;/code&gt;变量的值, &lt;code class=&quot;highlighter-rouge&quot;&gt;static&lt;/code&gt;变量值可以被修改, 因为后者是指针传递, 前者是值传递. 在&lt;code class=&quot;highlighter-rouge&quot;&gt;auto&lt;/code&gt;变量之前加上&lt;code class=&quot;highlighter-rouge&quot;&gt;__block&lt;/code&gt;关键字可以让&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;内部修改&lt;code class=&quot;highlighter-rouge&quot;&gt;auto&lt;/code&gt;变量的值&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;__block&lt;/code&gt;不能修饰静待变量以及全局变量, 只能修饰&lt;code class=&quot;highlighter-rouge&quot;&gt;auto&lt;/code&gt;局部变量&lt;/li&gt;
+  &lt;li&gt;编译器会将&lt;code class=&quot;highlighter-rouge&quot;&gt;__block&lt;/code&gt;变量包装成以下结构体, 然后&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;捕获到的变量为指向这个结构体的指针, 如果修饰的是对象, 不同之处在于结构体会增加&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;dispose&lt;/code&gt;函数来做内存管理
+    &lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__Block_byref_age_0&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;__isa&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;						&lt;span class=&quot;c1&quot;&gt;// 0&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;__Block_byref_age_0&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;__forwarding&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;	&lt;span class=&quot;c1&quot;&gt;// 指向自己的指针&lt;/span&gt;
+ &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__flags&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;						&lt;span class=&quot;c1&quot;&gt;// 0&lt;/span&gt;
+ &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;						&lt;span class=&quot;c1&quot;&gt;// 结构体所占内存的大小&lt;/span&gt;
+ &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;age&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;							&lt;span class=&quot;c1&quot;&gt;// 变量的值&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+    &lt;p&gt;苹果为了屏蔽&lt;code class=&quot;highlighter-rouge&quot;&gt;__block&lt;/code&gt;的内部实现, 所以打印&lt;code class=&quot;highlighter-rouge&quot;&gt;__block&lt;/code&gt;修饰变量的地址, 地址不是结构体的地址, 而是结构体存储变量值的地址&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;__block内存管理&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;__block&lt;/code&gt;内存管理&lt;/h4&gt;
+&lt;p&gt;在栈区的&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;, 都&lt;code class=&quot;highlighter-rouge&quot;&gt;__block&lt;/code&gt;的变量不会产生强引用&lt;/p&gt;
+
+&lt;p&gt;如果&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;被&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;到堆区(&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;内部使用的&lt;code class=&quot;highlighter-rouge&quot;&gt;__block&lt;/code&gt;结构体也会被&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;到堆区, 栈区结构体的&lt;code class=&quot;highlighter-rouge&quot;&gt;__forwarding&lt;/code&gt;会指向堆区的结构体)&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;调用&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;内部的&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;函数&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;内部会调用&lt;code class=&quot;highlighter-rouge&quot;&gt;_Block_object_assign&lt;/code&gt;函数&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;_Block_object_assign&lt;/code&gt;函数会对&lt;code class=&quot;highlighter-rouge&quot;&gt;__block&lt;/code&gt;变量形成强引用&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;一旦&lt;code class=&quot;highlighter-rouge&quot;&gt;__block&lt;/code&gt;结构体被&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;到堆区&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;调用&lt;code class=&quot;highlighter-rouge&quot;&gt;__block&lt;/code&gt;内部的&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;函数&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;内部会调用&lt;code class=&quot;highlighter-rouge&quot;&gt;_Block_object_assign&lt;/code&gt;函数&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;_Block_object_assign&lt;/code&gt;函数会根据&lt;code class=&quot;highlighter-rouge&quot;&gt;__block&lt;/code&gt;内部变量的修饰符(&lt;code class=&quot;highlighter-rouge&quot;&gt;__stong&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;__weak&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;__unsafe_unretained&lt;/code&gt;)做出相应的引用操作(如果是&lt;strong&gt;MRC&lt;/strong&gt;则永远是弱引用)&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&quot;block中的循环引用&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;中的循环引用&lt;/h3&gt;
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;作为属性使用&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;修饰来使之&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;到堆区. 如果用&lt;code class=&quot;highlighter-rouge&quot;&gt;strong&lt;/code&gt;修饰也会触发编译器自动&lt;code class=&quot;highlighter-rouge&quot;&gt;copy&lt;/code&gt;, 但在&lt;code class=&quot;highlighter-rouge&quot;&gt;MRC&lt;/code&gt;下不适用&lt;/p&gt;
+
+&lt;p&gt;如果&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;被对象持有, &lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;内部又使用了这个对象产生持有, 会造成循环引用导致内存泄漏
+所以在&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;内部调用持有&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;的变量, 需要使用&lt;code class=&quot;highlighter-rouge&quot;&gt;__weak&lt;/code&gt;或者&lt;code class=&quot;highlighter-rouge&quot;&gt;__unsafe_unretained&lt;/code&gt;来修饰使之只对持有&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;的变量产出弱引用来解决循环引用问题&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;__weak&lt;/code&gt;会在指向的对象销毁时自动将指针置为&lt;code class=&quot;highlighter-rouge&quot;&gt;nil&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;__unsafe_unretained&lt;/code&gt;会在指向的对象销毁时仍然指向那块内存, 造成&lt;strong&gt;野指针&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;使用&lt;code class=&quot;highlighter-rouge&quot;&gt;__block&lt;/code&gt;修饰也可以解决循环引用, 不过必须要调用&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;并且在&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;内部对持有&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;的变量置空&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;所以在&lt;code class=&quot;highlighter-rouge&quot;&gt;ARC&lt;/code&gt;环境下使用&lt;code class=&quot;highlighter-rouge&quot;&gt;__weak&lt;/code&gt;修饰持有&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;的变量是最优的方案&lt;/strong&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;mrc环境的循环引用&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;MRC&lt;/code&gt;环境的循环引用&lt;/h4&gt;
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;MRC&lt;/code&gt;环境下没有&lt;code class=&quot;highlighter-rouge&quot;&gt;__weak&lt;/code&gt;修饰符, 可以用&lt;code class=&quot;highlighter-rouge&quot;&gt;__unsafe_unretained&lt;/code&gt;修饰来解决循环引用, 但是会造成野指针, 但是由于&lt;code class=&quot;highlighter-rouge&quot;&gt;__block&lt;/code&gt;在&lt;code class=&quot;highlighter-rouge&quot;&gt;MRC&lt;/code&gt;下对对象永远是弱引用, 所以可以直接解决循环引用问题&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;所以在&lt;code class=&quot;highlighter-rouge&quot;&gt;MRC&lt;/code&gt;环境下使用&lt;code class=&quot;highlighter-rouge&quot;&gt;__block&lt;/code&gt;修饰持有&lt;code class=&quot;highlighter-rouge&quot;&gt;block&lt;/code&gt;的变量是最优的方案&lt;/strong&gt;&lt;/p&gt;</content><author><name>Cheney</name></author><category term="iOS底层原理" /><summary type="html">iOS Block 的原理(四)</summary></entry><entry><title type="html">iOS Category 的原理(三)</title><link href="http://localhost:4000/2018/08/22/iOS-Category-%E7%9A%84%E5%8E%9F%E7%90%86(%E4%B8%89).html" rel="alternate" type="text/html" title="iOS Category 的原理(三)" /><published>2018-08-22T00:00:00+08:00</published><updated>2018-08-22T00:00:00+08:00</updated><id>http://localhost:4000/2018/08/22/iOS%20Category%20%E7%9A%84%E5%8E%9F%E7%90%86(%E4%B8%89)</id><content type="html" xml:base="http://localhost:4000/2018/08/22/iOS-Category-%E7%9A%84%E5%8E%9F%E7%90%86(%E4%B8%89).html">&lt;h1 id=&quot;ios-category-的原理三&quot;&gt;iOS Category 的原理(三)&lt;/h1&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Category&lt;/code&gt;会在编译时转化为以下结构体&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_category_t&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; 								&lt;span class=&quot;c1&quot;&gt;// 类名&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_class_t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cls&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;			
+  &lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_method_list_t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;instance_methods&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;	&lt;span class=&quot;c1&quot;&gt;// 对象方法列表&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_method_list_t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;class_methods&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;		&lt;span class=&quot;c1&quot;&gt;// 类方法列表&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_protocol_list_t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;protoc&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ols&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;		&lt;span class=&quot;c1&quot;&gt;// 协议列表&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_prop_list_t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;properties&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;			&lt;span class=&quot;c1&quot;&gt;// 属性列表&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;通过&lt;code class=&quot;highlighter-rouge&quot;&gt;runtime&lt;/code&gt;加载类的全部&lt;code class=&quot;highlighter-rouge&quot;&gt;Category&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;把全部&lt;code class=&quot;highlighter-rouge&quot;&gt;Category&lt;/code&gt;的方法, 属性, 协议合并到一个大数组中, 后编译的数组会出现在数组前面&lt;/li&gt;
+  &lt;li&gt;然后会扩容类一开始的数组内存, 通过&lt;code class=&quot;highlighter-rouge&quot;&gt;memmove&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;memcpy&lt;/code&gt;来把数组插到类原来数据的前面. 所以&lt;code class=&quot;highlighter-rouge&quot;&gt;Category&lt;/code&gt;的方法会优先调用
+而&lt;code class=&quot;highlighter-rouge&quot;&gt;Extension&lt;/code&gt;在编译时就会合并到类对象里面, 和&lt;code class=&quot;highlighter-rouge&quot;&gt;Category&lt;/code&gt;不同&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;memcpy&lt;/code&gt;做单位copy, 不会做判断, &lt;code class=&quot;highlighter-rouge&quot;&gt;memmove&lt;/code&gt;可以保证移动的完整性&lt;/p&gt;
+
+&lt;p&gt;在分类里面写属性, 系统只会生成&lt;code class=&quot;highlighter-rouge&quot;&gt;set&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;get&lt;/code&gt;方法的声明, 不会生成成员变量和方法的实现, 且编译器不允许分类里面存放成员变量, 但是可以间接实现分类里添加成员变量
+&lt;code class=&quot;highlighter-rouge&quot;&gt;objc_setAssociatedObject&lt;/code&gt;可以添加关联对象&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;关联的对象&lt;/li&gt;
+  &lt;li&gt;关联属性的&lt;code class=&quot;highlighter-rouge&quot;&gt;key&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;关联属性的&lt;code class=&quot;highlighter-rouge&quot;&gt;value&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;关联策略
+&lt;code class=&quot;highlighter-rouge&quot;&gt;objc_getAssociatedObject&lt;/code&gt;可以获取关联对象&lt;/li&gt;
+  &lt;li&gt;获取的对象&lt;/li&gt;
+  &lt;li&gt;关联属性的&lt;code class=&quot;highlighter-rouge&quot;&gt;key&lt;/code&gt;
+&lt;code class=&quot;highlighter-rouge&quot;&gt;objc_removeAssociatedObjects&lt;/code&gt;移除所有的关联对象
+设置关联属性的值为&lt;code class=&quot;highlighter-rouge&quot;&gt;nil&lt;/code&gt;, 相当于移除关联对象&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;关联属性的&lt;code class=&quot;highlighter-rouge&quot;&gt;key&lt;/code&gt;可以直接用&lt;code class=&quot;highlighter-rouge&quot;&gt;get&lt;/code&gt;方法的地址, 每个方法都会默认传两个参数&lt;code class=&quot;highlighter-rouge&quot;&gt;self&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;_cmd&lt;/code&gt;, 后者就是当前方法的地址&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;objc_setAssociatedObject&lt;/code&gt;方法内部实现结构使用以下关键对象&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;AssociationsManager&lt;/code&gt;为全局统一的管理者&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;AssociationsHashMap&lt;/code&gt;为对应不同类的对象&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;ObjectAssociationMap&lt;/code&gt;为对应不同的属性&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;ObjcAssociation&lt;/code&gt;为存放的值
+&lt;code class=&quot;highlighter-rouge&quot;&gt;AssociationsManager&lt;/code&gt;对象里面有&lt;code class=&quot;highlighter-rouge&quot;&gt;AssociationsHashMap&lt;/code&gt;对象, &lt;code class=&quot;highlighter-rouge&quot;&gt;AssociationsHashMap&lt;/code&gt;对象的&lt;code class=&quot;highlighter-rouge&quot;&gt;key&lt;/code&gt;就是传入的&lt;code class=&quot;highlighter-rouge&quot;&gt;object&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;value&lt;/code&gt;为&lt;code class=&quot;highlighter-rouge&quot;&gt;ObjectAssociationMap&lt;/code&gt;对象, &lt;code class=&quot;highlighter-rouge&quot;&gt;ObjectAssociationMap&lt;/code&gt;对象的&lt;code class=&quot;highlighter-rouge&quot;&gt;key&lt;/code&gt;就是传入的&lt;code class=&quot;highlighter-rouge&quot;&gt;key&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;value&lt;/code&gt;为&lt;code class=&quot;highlighter-rouge&quot;&gt;ObjcAssociation&lt;/code&gt;对象, &lt;code class=&quot;highlighter-rouge&quot;&gt;ObjcAssociation&lt;/code&gt;里面有传入的&lt;code class=&quot;highlighter-rouge&quot;&gt;value&lt;/code&gt;对应的&lt;code class=&quot;highlighter-rouge&quot;&gt;_value&lt;/code&gt;以及&lt;code class=&quot;highlighter-rouge&quot;&gt;policy&lt;/code&gt;对应的&lt;code class=&quot;highlighter-rouge&quot;&gt;_policy&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;使用&lt;code class=&quot;highlighter-rouge&quot;&gt;objc_setAssociatedObject&lt;/code&gt;添加的关联对象不是存储在被关联对象本身内存中, 不会影响被关联对象的实例变量列表, 而是存储在全局统一的&lt;code class=&quot;highlighter-rouge&quot;&gt;AssociationsManager&lt;/code&gt;中&lt;/p&gt;
+
+&lt;p&gt;如果对象被销毁, 关联属性也会被自动移除&lt;/p&gt;
+
+&lt;h2 id=&quot;load和initialize方法&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;load&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;initialize&lt;/code&gt;方法&lt;/h2&gt;
+
+&lt;h4 id=&quot;load&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;load&lt;/code&gt;&lt;/h4&gt;
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;load&lt;/code&gt;方法在&lt;code class=&quot;highlighter-rouge&quot;&gt;runtime&lt;/code&gt;加载类或者分类的时候直接找到方法地址调用, 类和分类的&lt;code class=&quot;highlighter-rouge&quot;&gt;load&lt;/code&gt;方法都会被调用且只调用一次
+而其他的方法是用&lt;code class=&quot;highlighter-rouge&quot;&gt;objc_msgSend&lt;/code&gt;消息机制执行
+&lt;code class=&quot;highlighter-rouge&quot;&gt;load&lt;/code&gt;方法的执行顺序&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;先调用类的&lt;code class=&quot;highlighter-rouge&quot;&gt;load&lt;/code&gt;方法,
+    &lt;ol&gt;
+      &lt;li&gt;根据编译顺序调用&lt;code class=&quot;highlighter-rouge&quot;&gt;load&lt;/code&gt;方法&lt;/li&gt;
+      &lt;li&gt;调用子类的&lt;code class=&quot;highlighter-rouge&quot;&gt;load&lt;/code&gt;方法之前会调用父类的&lt;code class=&quot;highlighter-rouge&quot;&gt;load&lt;/code&gt;方法&lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+  &lt;li&gt;再调用&lt;code class=&quot;highlighter-rouge&quot;&gt;Category&lt;/code&gt;的&lt;code class=&quot;highlighter-rouge&quot;&gt;load&lt;/code&gt;方法
+    &lt;ol&gt;
+      &lt;li&gt;根据编译顺序调用&lt;code class=&quot;highlighter-rouge&quot;&gt;load&lt;/code&gt;方法&lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;如果手动调用&lt;code class=&quot;highlighter-rouge&quot;&gt;load&lt;/code&gt;方法, 等同于&lt;code class=&quot;highlighter-rouge&quot;&gt;objc_msgSend&lt;/code&gt;, 所以存在继承&lt;/p&gt;
+
+&lt;h4 id=&quot;initialize&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;initialize&lt;/code&gt;&lt;/h4&gt;
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;initialize&lt;/code&gt;会在类第一次接收到消息时使用消息发送机制调用, 会在&lt;code class=&quot;highlighter-rouge&quot;&gt;lookUpImpOrForward&lt;/code&gt;寻找方法里判断是否初始化过, 然后通过&lt;code class=&quot;highlighter-rouge&quot;&gt;objc_msgSend&lt;/code&gt;方法调用
+&lt;code class=&quot;highlighter-rouge&quot;&gt;initialize&lt;/code&gt;方法的执行顺序&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;调用子类的&lt;code class=&quot;highlighter-rouge&quot;&gt;initialize&lt;/code&gt;方法之前会调用父类的&lt;code class=&quot;highlighter-rouge&quot;&gt;initialize&lt;/code&gt;方法&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;load方法和initialize的区别&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;load&lt;/code&gt;方法和&lt;code class=&quot;highlighter-rouge&quot;&gt;initialize&lt;/code&gt;的区别&lt;/h3&gt;
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;initialize&lt;/code&gt;是通过&lt;code class=&quot;highlighter-rouge&quot;&gt;objc_msgSend&lt;/code&gt;调用, &lt;code class=&quot;highlighter-rouge&quot;&gt;load&lt;/code&gt;方法找到地址直接调用, 所以&lt;code class=&quot;highlighter-rouge&quot;&gt;initialize&lt;/code&gt;存在以下特点&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;如果子类没有实现&lt;code class=&quot;highlighter-rouge&quot;&gt;initialize&lt;/code&gt;, 则会调用父类的&lt;code class=&quot;highlighter-rouge&quot;&gt;initialize&lt;/code&gt;, 也就是说父类的&lt;code class=&quot;highlighter-rouge&quot;&gt;initialize&lt;/code&gt;会调用多次&lt;/li&gt;
+  &lt;li&gt;如果分类实现了&lt;code class=&quot;highlighter-rouge&quot;&gt;initialize&lt;/code&gt;, 则会覆盖掉类本身的&lt;code class=&quot;highlighter-rouge&quot;&gt;initialize&lt;/code&gt;&lt;/li&gt;
+&lt;/ol&gt;</content><author><name>Cheney</name></author><category term="iOS底层原理" /><summary type="html">iOS Category 的原理(三)</summary></entry><entry><title type="html">iOS KVO (Key-Value Observing) 的实现原理(二)</title><link href="http://localhost:4000/2018/08/21/iOS-KVO-(Key-Value-Observing)-%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E4%BA%8C).html" rel="alternate" type="text/html" title="iOS KVO (Key-Value Observing) 的实现原理(二)" /><published>2018-08-21T00:00:00+08:00</published><updated>2018-08-21T00:00:00+08:00</updated><id>http://localhost:4000/2018/08/21/iOS%20KVO%20(Key-Value%20Observing)%20%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E4%BA%8C)</id><content type="html" xml:base="http://localhost:4000/2018/08/21/iOS-KVO-(Key-Value-Observing)-%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86(%E4%BA%8C).html">&lt;h1 id=&quot;ios-kvo-key-value-observing-的实现原理二&quot;&gt;iOS KVO (Key-Value Observing) 的实现原理(二)&lt;/h1&gt;
+
+&lt;p&gt;如果给一个对象添加了&lt;code class=&quot;highlighter-rouge&quot;&gt;KVO&lt;/code&gt;, 则会利用&lt;code class=&quot;highlighter-rouge&quot;&gt;runtime&lt;/code&gt;动态生成原类的&lt;code class=&quot;highlighter-rouge&quot;&gt;NSKVONotifying_&lt;/code&gt;前缀的子类派生类, 使对象的&lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;指向这个派生类. 派生类重写了&lt;code class=&quot;highlighter-rouge&quot;&gt;set&lt;/code&gt;方法, 通过对象调用&lt;code class=&quot;highlighter-rouge&quot;&gt;methodForSelector:&lt;/code&gt;方法拿到&lt;code class=&quot;highlighter-rouge&quot;&gt;IMP&lt;/code&gt;指针验证方法实现列表为&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;nm&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Foundation&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;grep&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ValueAndNotify&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;__NSSetBoolValueAndNotify&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;__NSSetCharValueAndNotify&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;__NSSetDoubleValueAndNotify&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;__NSSetFloatValueAndNotify&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;__NSSetIntValueAndNotify&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;__NSSetLongLongValueAndNotify&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;__NSSetLongValueAndNotify&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;__NSSetObjectValueAndNotify&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;__NSSetPointValueAndNotify&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;__NSSetRangeValueAndNotify&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;__NSSetRectValueAndNotify&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;__NSSetShortValueAndNotify&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;__NSSetSizeValueAndNotify&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;这个方法的内部实现&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;__NSSetBoolValueAndNotify&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+	&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;self&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;willChangeValueForKey&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+	&lt;span class=&quot;c1&quot;&gt;// 调用父类的 set 方法, 然后&lt;/span&gt;
+	&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;self&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;didChangeValueForKey&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;	&lt;span class=&quot;c1&quot;&gt;// 这个方法里面调用 observeValueForKeyPath&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;派生类还重写了&lt;code class=&quot;highlighter-rouge&quot;&gt;dealloc&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;_isKVOA&lt;/code&gt;以及&lt;code class=&quot;highlighter-rouge&quot;&gt;class&lt;/code&gt;方法
+重写&lt;code class=&quot;highlighter-rouge&quot;&gt;class&lt;/code&gt;方法是为了隐藏派生类的存在, 使调用&lt;code class=&quot;highlighter-rouge&quot;&gt;class&lt;/code&gt;方法总会返回最原始的类对象, 大概实现为&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Class&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+     &lt;span class=&quot;c1&quot;&gt;// 得到类对象, 在找到类对象父类&lt;/span&gt;
+     &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;class_getSuperclass&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;object_getClass&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;手动调用&lt;code class=&quot;highlighter-rouge&quot;&gt;willChangeValueForKey&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;didChangeValueForKey&lt;/code&gt;可以唤起&lt;code class=&quot;highlighter-rouge&quot;&gt;KVO&lt;/code&gt;
+本质上是重写&lt;code class=&quot;highlighter-rouge&quot;&gt;set&lt;/code&gt;方法, 直接修改成员变量不会触发&lt;code class=&quot;highlighter-rouge&quot;&gt;KVO&lt;/code&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;kvc-key-value-coding&quot;&gt;KVC (Key-Value Coding)&lt;/h2&gt;
+&lt;p&gt;使用&lt;code class=&quot;highlighter-rouge&quot;&gt;KVC&lt;/code&gt;给对象的实例变量赋值会触发&lt;code class=&quot;highlighter-rouge&quot;&gt;KVO&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;setValue:forKey:&lt;/code&gt;执行步骤&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;找到&lt;code class=&quot;highlighter-rouge&quot;&gt;Key&lt;/code&gt;对应的&lt;code class=&quot;highlighter-rouge&quot;&gt;set&lt;/code&gt;方法并执行&lt;/li&gt;
+  &lt;li&gt;在&lt;code class=&quot;highlighter-rouge&quot;&gt;Key&lt;/code&gt;对应的&lt;code class=&quot;highlighter-rouge&quot;&gt;set&lt;/code&gt;方法前加&lt;code class=&quot;highlighter-rouge&quot;&gt;_&lt;/code&gt;找到并执行&lt;/li&gt;
+  &lt;li&gt;查看&lt;code class=&quot;highlighter-rouge&quot;&gt;accessInstanceVariablesDirectly&lt;/code&gt;方法的返回值, 如果为&lt;code class=&quot;highlighter-rouge&quot;&gt;NO&lt;/code&gt;则不允许访问实例变量&lt;/li&gt;
+  &lt;li&gt;按照&lt;code class=&quot;highlighter-rouge&quot;&gt;_key&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;_isKey&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;key&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;isKey&lt;/code&gt;顺序查找成员变量, 并直接赋值. 此时会调用&lt;code class=&quot;highlighter-rouge&quot;&gt;willChangeValueForKey&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;didChangeValueForKey&lt;/code&gt;, 所以还是会触发&lt;code class=&quot;highlighter-rouge&quot;&gt;KVO&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;valueForKey:&lt;/code&gt;执行步骤&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;按照&lt;code class=&quot;highlighter-rouge&quot;&gt;getKey&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;key&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;isKey&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;_key&lt;/code&gt;顺序查找方法并调用&lt;/li&gt;
+  &lt;li&gt;查看&lt;code class=&quot;highlighter-rouge&quot;&gt;accessInstanceVariablesDirectly&lt;/code&gt;方法的返回值, 如果为&lt;code class=&quot;highlighter-rouge&quot;&gt;NO&lt;/code&gt;则不允许访问实例变量&lt;/li&gt;
+  &lt;li&gt;按照&lt;code class=&quot;highlighter-rouge&quot;&gt;_key&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;_isKey&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;key&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;isKey&lt;/code&gt;顺序查找成员变量, 取出其中的值&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;KVC&lt;/code&gt;的方法在执行到&lt;code class=&quot;highlighter-rouge&quot;&gt;accessInstanceVariablesDirectly&lt;/code&gt;返回值为&lt;code class=&quot;highlighter-rouge&quot;&gt;NO&lt;/code&gt;或者最后一步没有找到实例变量会调用&lt;code class=&quot;highlighter-rouge&quot;&gt;setValue:forUndefinedKey:&lt;/code&gt;并抛出异常&lt;code class=&quot;highlighter-rouge&quot;&gt;NSUnknownKeyException&lt;/code&gt;&lt;/p&gt;</content><author><name>Cheney</name></author><category term="iOS底层原理" /><summary type="html">iOS KVO (Key-Value Observing) 的实现原理(二)</summary></entry><entry><title type="html">iOS 对象和类的基本原理(一)</title><link href="http://localhost:4000/2018/08/20/iOS-%E5%AF%B9%E8%B1%A1%E5%92%8C%E7%B1%BB%E7%9A%84%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86(%E4%B8%80).html" rel="alternate" type="text/html" title=" iOS 对象和类的基本原理(一)" /><published>2018-08-20T00:00:00+08:00</published><updated>2018-08-20T00:00:00+08:00</updated><id>http://localhost:4000/2018/08/20/iOS%20%E5%AF%B9%E8%B1%A1%E5%92%8C%E7%B1%BB%E7%9A%84%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86(%E4%B8%80)</id><content type="html" xml:base="http://localhost:4000/2018/08/20/iOS-%E5%AF%B9%E8%B1%A1%E5%92%8C%E7%B1%BB%E7%9A%84%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86(%E4%B8%80).html">&lt;h1 id=&quot;ios-对象和类的基本原理一&quot;&gt;iOS 对象和类的基本原理(一)&lt;/h1&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;clang -rewrite-objc main.m -o main.cpp&lt;/code&gt;执行会把&lt;code class=&quot;highlighter-rouge&quot;&gt;OC&lt;/code&gt;代码编译成&lt;code class=&quot;highlighter-rouge&quot;&gt;C/C++&lt;/code&gt;的代码 
+&lt;code class=&quot;highlighter-rouge&quot;&gt;xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc main.m -o main64.cpp&lt;/code&gt;可以指定系统架构来编译代码
+如果使用&lt;code class=&quot;highlighter-rouge&quot;&gt;__weak&lt;/code&gt;关键字, 需要支持&lt;code class=&quot;highlighter-rouge&quot;&gt;runtime&lt;/code&gt;, 则需要以下命令&lt;code class=&quot;highlighter-rouge&quot;&gt;xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc -fobjc-arc -fobjc-runtime=ios-8.0.0 main.m -o mainRuntime64.cpp &lt;/code&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;实例对象instance&quot;&gt;实例对象&lt;code class=&quot;highlighter-rouge&quot;&gt;instance&lt;/code&gt;&lt;/h3&gt;
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;NSObject&lt;/code&gt;类本质上是一个结构体, 构造如下&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NSObject_IMPL&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;Class&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;isa&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;上者就是由&lt;code class=&quot;highlighter-rouge&quot;&gt;NSObject&lt;/code&gt;类的原型生成的&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;@interface&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;NSObject&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;NSObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#pragma clang diagnostic push
+#pragma clang diagnostic ignored &quot;-Wobjc-interface-ivars&quot;
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;Class&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;isa&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;OBJC_ISA_AVAILABILITY&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#pragma clang diagnostic pop
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;@end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;nsobject占用的内存大小&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;NSObject&lt;/code&gt;占用的内存大小&lt;/h4&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;NSObject&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;obj&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NSObject&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;new&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 用来获取这个类的对象的实例变量占用的多少内存&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;%zd&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;class_getInstanceSize&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;NSObject&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// 用来获取给这个对象分配的内存大小&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;NSLog&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;@&quot;%zd&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;malloc_size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;__bridge&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;obj&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)));&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;结果为&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt;
+&lt;span class=&quot;mi&quot;&gt;16&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;在 &lt;code class=&quot;highlighter-rouge&quot;&gt;CoreFoundation&lt;/code&gt;下要求最小单位是 16 bytes, 也就是空了 8 bytes.&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kt&quot;&gt;uint32_t&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;alignedInstanceSize&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+	&lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;word_align&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;unalignedInstanceSize&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;());&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    
+&lt;span class=&quot;kt&quot;&gt;size_t&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;instanceSize&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;size_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;extraBytes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+	&lt;span class=&quot;kt&quot;&gt;size_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;alignedInstanceSize&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;extraBytes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+	&lt;span class=&quot;c1&quot;&gt;// CF requires all objects be at least 16 bytes.&lt;/span&gt;
+	&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;size&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+	&lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;生成实例的内存图如下&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;lldb&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;po&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;obj&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;NSObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mh&quot;&gt;0x10064f070&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;
+
+&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;lldb&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;mh&quot;&gt;0x10064f070&lt;/span&gt;
+&lt;span class=&quot;mh&quot;&gt;0x10064f070&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;41&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;21&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b3&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;99&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ff&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ff&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;A&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;..............&lt;/span&gt;
+&lt;span class=&quot;mh&quot;&gt;0x10064f080&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;50&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f1&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;64&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;01&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;90&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f3&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;64&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;01&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;P&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.......&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.....&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;复杂对象占用的内存大小&quot;&gt;复杂对象占用的内存大小&lt;/h4&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;@interface&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Person&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;NSObject&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_number&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_age&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;@end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;上者会转化成以下结构体代码&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Person_IMPL&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+	&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NSObject_IMPL&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NSObject_IVARS&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+	&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_number&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+	&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_age&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;由于&lt;code class=&quot;highlighter-rouge&quot;&gt;NSObject&lt;/code&gt;结构体只有&lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;变量, 故等同于&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Person_IMPL&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;Class&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;isa&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+	&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_number&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+	&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_age&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;此时&lt;code class=&quot;highlighter-rouge&quot;&gt;_number&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;_age&lt;/code&gt;各占用 4 bytes, Person 对象占用 16 bytes.
+内存图如下&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;lldb&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;po&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;per&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Person&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mh&quot;&gt;0x10070dbd0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;
+
+&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;lldb&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;mh&quot;&gt;0x10070dbd0&lt;/span&gt;
+&lt;span class=&quot;mh&quot;&gt;0x10070dbd0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a9&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;11&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;01&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;80&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;04&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;05&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt;  &lt;span class=&quot;p&quot;&gt;................&lt;/span&gt;
+&lt;span class=&quot;mh&quot;&gt;0x10070dbe0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b0&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dc&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;70&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;01&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f0&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;de&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;70&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;01&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt; &lt;span class=&quot;mo&quot;&gt;00&lt;/span&gt;  &lt;span class=&quot;p&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.......&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.....&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;以此类推&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;@interface&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Student&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Person&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_grade&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;@end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;转化结构体&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Student_IMPL&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+	&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Person_IMPL&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Person_IVARS&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+	&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_grade&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;如果父类的&lt;code class=&quot;highlighter-rouge&quot;&gt;Person&lt;/code&gt;只有一个&lt;code class=&quot;highlighter-rouge&quot;&gt;int&lt;/code&gt;类型, 会空出 4 bytes. 因为内存对齐而占用 16 bytes, 子类&lt;code class=&quot;highlighter-rouge&quot;&gt;Student&lt;/code&gt;如果只有一个&lt;code class=&quot;highlighter-rouge&quot;&gt;int&lt;/code&gt;类型, 补上空出的 4 bytes, 各自占用 16 bytes.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;属性会生成带下划线的成员变量&lt;/strong&gt;
+&lt;strong&gt;创建出来的实例对象不存储方法, 只存储实例变量&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;class_getInstanceSize&lt;/code&gt;是返回对齐过后的成员变量占用的内存空间, 而 Apple 为了优化内存分配的速度, &lt;code class=&quot;highlighter-rouge&quot;&gt;malloc_size&lt;/code&gt;实际开辟空间的大小为 16 的倍数&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;obj&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;zone&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;fast&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;obj&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;calloc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;obj&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;nil&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;obj&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;initInstanceIsa&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cls&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;hasCxxDtor&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;zone&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;obj&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;malloc_zone_calloc&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;malloc_zone_t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;zone&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;obj&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;calloc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;obj&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;nil&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    
+    &lt;span class=&quot;c1&quot;&gt;// Use raw pointer isa on the assumption that they might be&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// doing something weird with the zone or RR.&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;obj&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;initIsa&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cls&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;cp&quot;&gt;#define NANO_MAX_SIZE			256 &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* Buckets sized {16, 32, 48, 64, 80, 96, 112, ...} */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;sizeof&lt;/code&gt;是一个运算符, 而&lt;code class=&quot;highlighter-rouge&quot;&gt;class_getInstanceSize&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;malloc_size&lt;/code&gt;是函数&lt;/p&gt;
+
+&lt;h3 id=&quot;类对象class&quot;&gt;类对象&lt;code class=&quot;highlighter-rouge&quot;&gt;class&lt;/code&gt;&lt;/h3&gt;
+&lt;p&gt;每个类在内存中都有且只有一个&lt;code class=&quot;highlighter-rouge&quot;&gt;class&lt;/code&gt;对象
+&lt;code class=&quot;highlighter-rouge&quot;&gt;class&lt;/code&gt;对象在内存中存储的信息包括&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;指针&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;superclass&lt;/code&gt;指针&lt;/li&gt;
+  &lt;li&gt;类的&lt;strong&gt;属性&lt;/strong&gt;信息, 类的&lt;strong&gt;对象方法&lt;/strong&gt;信息&lt;/li&gt;
+  &lt;li&gt;类的&lt;strong&gt;协议&lt;/strong&gt;信息, 类的&lt;strong&gt;成员变量&lt;/strong&gt;信息
+&lt;code class=&quot;highlighter-rouge&quot;&gt;object_getClass&lt;/code&gt;传入实例对象获取类对象&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;元类对象meta-class&quot;&gt;元类对象&lt;code class=&quot;highlighter-rouge&quot;&gt;meta-class&lt;/code&gt;&lt;/h3&gt;
+&lt;p&gt;每个类在内存中都有且只有一个&lt;code class=&quot;highlighter-rouge&quot;&gt;meta-class&lt;/code&gt;对象
+&lt;code class=&quot;highlighter-rouge&quot;&gt;meta-class&lt;/code&gt;对象在内存中存储的信息包括&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;指针&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;superclass&lt;/code&gt;指针&lt;/li&gt;
+  &lt;li&gt;类的&lt;strong&gt;类方法&lt;/strong&gt;信息
+内存结构和&lt;code class=&quot;highlighter-rouge&quot;&gt;class&lt;/code&gt;对象是一样的, 只不过存储的东西不同
+&lt;code class=&quot;highlighter-rouge&quot;&gt;class_isMetaClass&lt;/code&gt;是否为元类对象&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;object_getClass&lt;/code&gt;传入类对象获取元类对象
+&lt;code class=&quot;highlighter-rouge&quot;&gt;object_getClass&lt;/code&gt;传入元类对象获取&lt;code class=&quot;highlighter-rouge&quot;&gt;NSObject&lt;/code&gt;的&lt;code class=&quot;highlighter-rouge&quot;&gt;meta-class&lt;/code&gt;对象
+&lt;code class=&quot;highlighter-rouge&quot;&gt;object_getClass&lt;/code&gt;本质上获取&lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;指针指向的地址&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;objc_getClass&lt;/code&gt;传入字符串获取类对象&lt;/p&gt;
+
+&lt;h2 id=&quot;ios-isa指针和superclass指针&quot;&gt;iOS &lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;指针和&lt;code class=&quot;highlighter-rouge&quot;&gt;superclass&lt;/code&gt;指针&lt;/h2&gt;
+
+&lt;h3 id=&quot;isa指针&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;指针&lt;/h3&gt;
+&lt;p&gt;所有对象都有&lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;指针&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;instance&lt;/code&gt;对象的&lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;指向&lt;code class=&quot;highlighter-rouge&quot;&gt;class&lt;/code&gt;, 当调用**对象方法**时, 通过&lt;code class=&quot;highlighter-rouge&quot;&gt;instance&lt;/code&gt;的&lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;找到&lt;code class=&quot;highlighter-rouge&quot;&gt;class&lt;/code&gt;, 最后找到&lt;strong&gt;对象方法&lt;/strong&gt;的实现进行调用&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;class&lt;/code&gt;对象的&lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;指向&lt;code class=&quot;highlighter-rouge&quot;&gt;meta-class&lt;/code&gt;, 当调用&lt;strong&gt;类方法&lt;/strong&gt;时, 通过&lt;code class=&quot;highlighter-rouge&quot;&gt;class&lt;/code&gt;的&lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;找到&lt;code class=&quot;highlighter-rouge&quot;&gt;meta-class&lt;/code&gt;, 最后找到&lt;strong&gt;类方法&lt;/strong&gt;的实现进行调用&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;meta-class&lt;/code&gt;对象的&lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;指向基类的&lt;code class=&quot;highlighter-rouge&quot;&gt;meta-class&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;从&lt;code class=&quot;highlighter-rouge&quot;&gt;arm64&lt;/code&gt;架构开始, &lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;需要和&lt;code class=&quot;highlighter-rouge&quot;&gt;ISA_MASK&lt;/code&gt;进行一次位运算, 才能计算出真实地址&lt;/p&gt;
+
+&lt;h3 id=&quot;class对象的superclass指针&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;class&lt;/code&gt;对象的&lt;code class=&quot;highlighter-rouge&quot;&gt;superclass&lt;/code&gt;指针&lt;/h3&gt;
+&lt;p&gt;所有类对象都有&lt;code class=&quot;highlighter-rouge&quot;&gt;superclass&lt;/code&gt;指针
+子类的&lt;code class=&quot;highlighter-rouge&quot;&gt;superclass&lt;/code&gt;指针指向父类的&lt;code class=&quot;highlighter-rouge&quot;&gt;class&lt;/code&gt;对象, 如果没有父类, 则指向&lt;code class=&quot;highlighter-rouge&quot;&gt;nil&lt;/code&gt;
+子类的对象调用父类的方法时, 会先通过&lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;找到子类的&lt;code class=&quot;highlighter-rouge&quot;&gt;class&lt;/code&gt;, 然后通过&lt;code class=&quot;highlighter-rouge&quot;&gt;superclass&lt;/code&gt;找到父类的&lt;code class=&quot;highlighter-rouge&quot;&gt;class&lt;/code&gt;, 最后找到对象方法的实现进行调用&lt;/p&gt;
+
+&lt;h3 id=&quot;meta-class对象的superclass指针&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;meta-class&lt;/code&gt;对象的&lt;code class=&quot;highlighter-rouge&quot;&gt;superclass&lt;/code&gt;指针&lt;/h3&gt;
+&lt;p&gt;子类的&lt;code class=&quot;highlighter-rouge&quot;&gt;superclass&lt;/code&gt;指针指向父类的&lt;code class=&quot;highlighter-rouge&quot;&gt;meta-class&lt;/code&gt;对象, 基类的&lt;code class=&quot;highlighter-rouge&quot;&gt;meta-class&lt;/code&gt;的&lt;code class=&quot;highlighter-rouge&quot;&gt;superclass&lt;/code&gt;指向基类的&lt;code class=&quot;highlighter-rouge&quot;&gt;class&lt;/code&gt;, 也就是说调用基类的实例方法可以用类来调用
+子类调用父类的类方法时, 会先通过&lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;找到子类的&lt;code class=&quot;highlighter-rouge&quot;&gt;meta-class&lt;/code&gt;, 然后通过&lt;code class=&quot;highlighter-rouge&quot;&gt;superclass&lt;/code&gt;找到父类的&lt;code class=&quot;highlighter-rouge&quot;&gt;meta-class&lt;/code&gt;, 最后找到类方法的实现进行调用&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;superclass&lt;/code&gt;直接指向父类的对象, 不需要进行位运算, 和&lt;code class=&quot;highlighter-rouge&quot;&gt;isa&lt;/code&gt;不同&lt;/p&gt;
+
+&lt;h3 id=&quot;objc_class对象结构&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;objc_class&lt;/code&gt;对象结构&lt;/h3&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;objc_class&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;objc_object&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// Class ISA;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;Class&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;superclass&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;cache_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cache&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;             &lt;span class=&quot;c1&quot;&gt;// formerly cache pointer and vtable&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;class_data_bits_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bits&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;// class_rw_t * plus custom rr/alloc flags&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;bits&lt;/code&gt;与&lt;code class=&quot;highlighter-rouge&quot;&gt;FAST_DATA_MASK&lt;/code&gt;做一次位运算来获取具体的类信息&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;class_rw_t&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// Be warned that Symbolication knows the layout of this structure.&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;uint32_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;flags&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;uint32_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;version&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;class_ro_t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ro&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;method_array_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;methods&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;			&lt;span class=&quot;c1&quot;&gt;// 方法列表&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;property_array_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;properties&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;	&lt;span class=&quot;c1&quot;&gt;// 属性列表&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;protocol_array_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;protocols&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;		&lt;span class=&quot;c1&quot;&gt;// 协议列表&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;Class&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;firstSubclass&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;Class&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;nextSiblingClass&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;demangledName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;class_ro_t&lt;/code&gt;内部结构&lt;/p&gt;
+&lt;div class=&quot;language-objc highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;class_ro_t&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;uint32_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;flags&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;uint32_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;instanceStart&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;uint32_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;instanceSize&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;			&lt;span class=&quot;c1&quot;&gt;// instance 对象占用的内存空间&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#ifdef __LP64__
+&lt;/span&gt;    &lt;span class=&quot;kt&quot;&gt;uint32_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;reserved&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#endif
+&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;uint8_t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ivarLayout&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    
+    &lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;				&lt;span class=&quot;c1&quot;&gt;// 类名&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;method_list_t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;baseMethodList&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;	
+    &lt;span class=&quot;n&quot;&gt;protocol_list_t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;baseProtocols&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ivar_list_t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ivars&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;		&lt;span class=&quot;c1&quot;&gt;// 成员变量列表&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;uint8_t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;weakIvarLayout&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;property_list_t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;baseProperties&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;method_list_t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;baseMethods&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;baseMethodList&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;</content><author><name>Cheney</name></author><category term="iOS底层原理" /><summary type="html">iOS 对象和类的基本原理(一)</summary></entry><entry><title type="html">ReactiveCocoa(二)</title><link href="http://localhost:4000/2017/04/30/ReactiveCocoa(%E4%BA%8C).html" rel="alternate" type="text/html" title="ReactiveCocoa(二)" /><published>2017-04-30T00:00:00+08:00</published><updated>2017-04-30T00:00:00+08:00</updated><id>http://localhost:4000/2017/04/30/ReactiveCocoa(%E4%BA%8C)</id><content type="html" xml:base="http://localhost:4000/2017/04/30/ReactiveCocoa(%E4%BA%8C).html">&lt;h1 id=&quot;reactivecocoa二&quot;&gt;ReactiveCocoa(二)&lt;/h1&gt;
 
 &lt;h2 id=&quot;常见用法&quot;&gt;常见用法&lt;/h2&gt;
 
